@@ -32,59 +32,6 @@ def get_text_word_splits(training_data):
     text = [s.split(" ") for s in text]
     return text
 
-def load_data_and_labels():
-    """
-    Loads MR polarity data from files, splits the data into words and generates labels.
-    Returns split sentences and labels.
-    """
-    # Load data from files
-    model_training_data = "/raid/ankit/lstm/model_training_data.txt"
-    print "Loading Model Training Data: {}".format(model_training_data)
-
-    training_data_query = []
-    training_data_similar = []
-    training_data_non_similar1 = []
-    training_data_non_similar2 = []
-    training_data_non_similar3 = []
-
-    # output = {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
-    less_doc_cnt = 0
-    with open(model_training_data) as fo:
-
-        for line in fo:
-
-            data = json.loads(line)
-            if len(data['doc_incorr']) == 3:
-                training_data_query.append(data['q'])
-                training_data_similar.append(data['doc_corr'])
-
-                training_data_non_similar1.append(data['doc_incorr'][0])
-                training_data_non_similar2.append(data['doc_incorr'][1])
-                training_data_non_similar3.append(data['doc_incorr'][2])
-            else:
-                less_doc_cnt +=1
-    print "Number of skipped data points: Incorrect Documents in Training Data (< 3): {}".format(less_doc_cnt)
-
-    # Split by words
-
-    query_text = get_text_word_splits(training_data_query)
-
-    similar_text = get_text_word_splits(training_data_similar)
-
-    nonsimilar_text1 = get_text_word_splits(training_data_non_similar1)
-
-    nonsimilar_text2 = get_text_word_splits(training_data_non_similar2)
-
-    nonsimilar_text3 = get_text_word_splits(training_data_non_similar3)
-
-    # Generate labels
-    data_output_labels = [1 for _ in similar_text]
-
-    # y = np.concatenate([positive_labels, negative_labels], 0)
-    return [ query_text, similar_text, nonsimilar_text1, nonsimilar_text2, nonsimilar_text3 , np.asarray(data_output_labels)]
-
-
-
 def pad_sentences(sentences, padding_word="<PAD/>"):
     """
     Pads all sentences to the same length. The length is defined by the longest sentence.
@@ -117,76 +64,16 @@ def build_vocab(sentences):
     return vocabulary_inv
 
 
-def build_input_data(sentences, vocabulary):
+def build_input_data(sentences, vocabulary, return_array=True):
     """
     Maps sentences and labels to vectors based on a vocabulary.
     """
-    x = np.array([[vocabulary.get(word) for word in sentence] for sentence in sentences])
-    return x
-
-def load_word_embeddings(embedding_dim, vocab_list, masking=False, use_pickled=True):
-
-    print("Loading Word Embeddings into memory ... ")
-    if masking:
-        masking_value = ""  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+    y = [[vocabulary.get(word) for word in sentence] for sentence in sentences]
+    if return_array:
+        x = np.array(y)
+        return x
     else:
-        masking_value = "_non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
-
-    # Dataset sources file paths
-    index_dict_file_path =  '/raid/ankit/lstm/we_index_dict{}.pkl'.format(masking_value)
-    embedding_weights_file_path = '/raid/ankit/lstm/we_embedding_weights{}.pkl'.format(masking_value)
-    word_vectors_file = "/raid/ankit/vectors/vectors_wholecorpus100.txt"
-
-    if not use_pickled:
-        index_dict = {}
-        # adding 1 to account for 0th index (for masking) [Number of word:vector pairs is 7115783]
-        n_symbols = 7556273 # TODO: Figure out a way to remove this hard-coded value!
-        embedding_weights = np.zeros((n_symbols + 1, embedding_dim))
-        # Path to word vectors file
-
-        if masking:
-            i = 0   # Leaves the 0-index free of any data.
-        else:
-            i = -1  # Stores the embedding weights from the zero'th index itself.
-
-        words_set = set()
-        with open(word_vectors_file) as fopen:
-            for line in fopen:
-                i += 1
-                try:
-                    components = line.strip().split()
-                    if not len(components) < embedding_dim:
-
-                        if i % 1000000 == 0:
-                            print("Words added to embedding matrix ... {}".format(i))
-
-                        word = components[0]
-                        words_set.add(word)
-                        vec = np.asarray([float(x) for x in components[1:embedding_dim + 1]])
-                        index_dict[word] = i
-                        embedding_weights[i, :] = vec
-                except Exception as e:
-                    print("Exception Encountered: ".format(e))
-        print("Word Embeddings added. Current value of i : {}".format(i))
-        # Adding the word vectors from the input datasets which are not in the word vector file.
-        # Word Vectors are drawn at random from a uniform distribution(-0.25, 0.25)
-        for word_k in vocab_list:
-            if not word_k in words_set and not word_k in index_dict:
-                i += 1
-                index_dict[word_k] = i
-                embedding_weights[i, :] = np.random.uniform(-0.25, 0.25, embedding_dim)
-        print("Added Random Vectors for the unseen words in the corpus. Current value of i: {}".format(i))
-        print("Dumping embedding weights and index_dict to disk as pickled files ....")
-        joblib.dump(index_dict, index_dict_file_path)
-        joblib.dump(embedding_weights, embedding_weights_file_path)
-        print('Finished: Dumping index_dict and embedding_weights to disk.')
-        return index_dict, embedding_weights
-    else:
-        print('Loading Word Embeddings: index_dict and embeddings weights from disk ... ')
-        index_dict = joblib.load(index_dict_file_path)
-        embedding_weights = joblib.load(embedding_weights_file_path)
-        print("Word Embedding pickled files loaded into memory!")
-        return index_dict, embedding_weights
+        return y
 
 
 def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_pickled=True):
@@ -258,54 +145,83 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
         return index_dict, embedding_weights
 
 
+    # print "Data Generated.. Now Dumping to disk....."
+    # joblib.dump(final_out, "/raid/ankit/lstm/lstm_input_data_compact.pkl")
+    # print "Data Dumped to disk!"
+    # return final_out, embedding_weights
+
+
 def load_data(embedding_dim, embedding_weights_masking, load_embeddings_pickled=True):
     """
-    Loads and preprocessed data for the MR dataset.
-    Returns input vectors, labels, vocabulary, and inverse vocabulary.
+    Loads MR polarity data from files, splits the data into words and generates labels.
+    Returns split sentences and labels.
     """
-    # Load and preprocess data
-    # sentences, labels = load_data_and_labels()
-    query_text, similar_text, nonsimilar_text1, nonsimilar_text2, nonsimilar_text3, \
-        data_output_labels = load_data_and_labels()
+    # Load data from files
+    model_training_data = "/raid/ankit/lstm/model_training_data.txt"
+    print "Loading Model Training Data: {}".format(model_training_data)
 
-    query_text_padded = pad_sentences(query_text)
-    similar_text_padded = pad_sentences(similar_text)
-    nonsimilar_text1_padded = pad_sentences(nonsimilar_text1)
-    nonsimilar_text2_padded = pad_sentences(nonsimilar_text2)
-    nonsimilar_text3_padded = pad_sentences(nonsimilar_text3)
+    q = []
+    sim = []
+    ns = []
 
-    # Get a list of all words from various datasets.
-    vocabulary_query_inv = build_vocab(query_text_padded)
-    vocabulary_similar_inv = build_vocab(similar_text_padded)
-    vocabulary_nonsimilar1_inv = build_vocab(nonsimilar_text1_padded)
-    vocabulary_nonsimilar2_inv = build_vocab(nonsimilar_text2_padded)
-    vocabulary_nonsimilar3_inv = build_vocab(nonsimilar_text3_padded)
+    # output = {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
+    less_doc_cnt = 0
+    with open(model_training_data) as fo:
+        for line in fo:
+            data = json.loads(line)
+            if len(data['doc_incorr']) == 3:
+                q.append(data['q'])
+                sim.append(data['doc_corr'])
+                ns.append(data['doc_incorr'])
+            else:
+                less_doc_cnt +=1
+    print "Number of skipped data points: Incorrect Documents in Training Data (< 3): {}".format(less_doc_cnt)
 
-    vocab_list  = list(set(vocabulary_query_inv + vocabulary_similar_inv + vocabulary_nonsimilar1_inv + vocabulary_nonsimilar2_inv + vocabulary_nonsimilar3_inv))
+    # Split by words
+    tmp_list = [q, sim, ns]
+    vocab_set = set()
 
-    #index_dict, embedding_weights = load_word_embeddings(embedding_dim, vocab_list, masking=embedding_weights_masking, use_pickled =load_embeddings_pickled)
-    index_dict, embedding_weights = load_word_embeddings_compact(embedding_dim, vocab_list, masking=embedding_weights_masking, use_pickled =load_embeddings_pickled)
+    text_padded_list = []
+    # VOCAB and Padded List Generation
+    for x in tmp_list:
+        if len(x)==1:
+            x_word_split = get_text_word_splits(x)
+            x_padded_text = pad_sentences(x_word_split)
+            x_vocab = build_vocab(x_padded_text)
+            for i in x_vocab:
+                if not i in vocab_set:
+                    vocab_set.add(i)
+            text_padded_list.append(x_padded_text)
+        else:
+            text_pad_tmp = []
+            for i in xrange(0, len(x)):
+                x_word_split = get_text_word_splits(x[i])
+                x_padded_text = pad_sentences(x_word_split)
+                x_vocab = build_vocab(x_padded_text)
+                for i in x_vocab:
+                    if not i in vocab_set:
+                        vocab_set.add(i)
+                text_pad_tmp.append(x_padded_text)
+            text_padded_list.append(text_pad_tmp)
 
-    print('Build Input Data for queries and documents (similar and non-similar)... ')
-    x_query = build_input_data(query_text_padded, index_dict)
-    x_similar = build_input_data(similar_text_padded, index_dict)
-    x_nonsimilar1 = build_input_data(nonsimilar_text1_padded,  index_dict)
-    x_nonsimilar2 = build_input_data(nonsimilar_text2_padded, index_dict)
-    x_nonsimilar3 = build_input_data(nonsimilar_text3_padded, index_dict)
+    vocab_index_dict, embedding_weights = load_word_embeddings_compact(embedding_dim, list(vocab_set),
+                                                                 masking=embedding_weights_masking,
+                                                                 use_pickled=load_embeddings_pickled)
+    res = []
+    # Build Input Data
+    for x in text_padded_list:
+        if len(x) == 1:
+            x_input= build_input_data(x, vocab_index_dict, return_array=False)
+            res.append(x_input)
+        else:
+            res_tmp = []
+            for i in xrange(0, len(x)):
+                x_input = build_input_data(x, vocab_index_dict, return_array=False)
+                res_tmp.append(x_input)
+            res.append(res_tmp)
 
-    final_out = [
-        ([x_query, vocabulary_query_inv],
-        [x_similar, vocabulary_similar_inv],
-        [x_nonsimilar1, vocabulary_nonsimilar1_inv],
-        [x_nonsimilar2,  vocabulary_nonsimilar2_inv],
-        [x_nonsimilar3,  vocabulary_nonsimilar3_inv]), data_output_labels, index_dict
-    ]
-
-    print "Data Generated.. Now Dumping to disk....."
-    joblib.dump(final_out, "/raid/ankit/lstm/lstm_input_data_compact.pkl")
-    print "Data Dumped to disk!"
-    return final_out, embedding_weights
-
+    # Generate labels
+    return text_padded_list, np.ones(len(text_padded_list[0])), embedding_weights
 
 def batch_iter(data, batch_size, num_epochs):
     """
