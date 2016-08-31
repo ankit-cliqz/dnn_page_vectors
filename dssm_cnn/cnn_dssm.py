@@ -25,7 +25,7 @@ embedding_dim = 100
 
 # Training Parameters
 batch_size = 1024
-nb_epoch = 5
+nb_epoch = 3
 
 # CNN Model Parameters
 filter_sizes = (3, 4)
@@ -41,7 +41,7 @@ Note:
 batch_size is highly sensitive.
 Only 2 epochs are needed as the dataset is very small.
 '''
-load_pickled_data=False
+load_pickled_data=False     # input data
 embedding_weights_masking=False # Mask the Embedding Weights If false, data get written from zero-index of the array.
 
 if embedding_weights_masking:
@@ -198,7 +198,7 @@ model.compile(optimizer="adam", loss="binary_crossentropy")
 
 # verbose: 0 for no logging to stdout, 1 for progress bar logging, 2 for one log line per epoch.
 print('Train on Data...')
-model.fit([x_query, x_similar, x_nonsimilar1, x_nonsimilar2, x_nonsimilar3], data_output_labels, batch_size=batch_size, nb_epoch=nb_epoch, validation_split=0.2)
+model.fit([x_query, x_similar, x_nonsimilar1, x_nonsimilar2, x_nonsimilar3], data_output_labels, batch_size=batch_size, nb_epoch=nb_epoch, validation_split=0.2, shuffle=True)
 print('Model Fitting Completed! Now saving trained Model on Disk ... ')
 
 

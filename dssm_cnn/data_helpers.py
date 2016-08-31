@@ -200,7 +200,7 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
     # Dataset sources file paths
     index_dict_file_path =  '/raid/ankit/lstm/we_index_dict_compact{}.pkl'.format(masking_value)
     embedding_weights_file_path = '/raid/ankit/lstm/we_embedding_weights_compact{}.pkl'.format(masking_value)
-    word_vectors_file = "/raid/ankit/vectors/vectors_wholecorpus100.txt"
+    word_vectors_file = "/raid/ankit/vectors/fast_model_ns.vec"
 
     if not use_pickled:
         index_dict = {}

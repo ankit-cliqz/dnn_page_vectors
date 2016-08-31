@@ -221,7 +221,7 @@ def load_data(embedding_dim, embedding_weights_masking, load_embeddings_pickled=
             res.append(res_tmp)
 
     # Generate labels
-    return text_padded_list, np.ones(len(text_padded_list[0])), embedding_weights
+    return res, np.ones(len(text_padded_list[0])), embedding_weights
 
 def batch_iter(data, batch_size, num_epochs):
     """
