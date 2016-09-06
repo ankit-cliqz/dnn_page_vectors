@@ -4,6 +4,19 @@ import itertools
 from collections import Counter
 import ujson as json
 import joblib
+from config import Configuration
+from utils.gen_utils import GeneralUtils
+
+conf = Configuration()
+genutil = GeneralUtils()
+
+
+vocab_set_file = "/raid/ankit/lstm/vocab_set_{}.pkl"
+vocab_index_file = "/raid/ankit/lstm/vocab_index_dict_{}.pkl"
+
+word_vectors_file = conf.word_vectors_directory
+embedding_weights_file_tpl = '/raid/ankit/lstm/we_embedding_weights_compact{}.pkl'
+
 
 def clean_str(string):
     """
@@ -80,18 +93,13 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
 
     print("Loading Word Embeddings into memory ... ")
     if masking:
-        masking_value = ""  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+        masking_value = "_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
     else:
         masking_value = "_non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
 
     # Dataset sources file paths
-    index_dict_file_path =  '/raid/ankit/lstm/we_index_dict_compact{}.pkl'.format(masking_value)
-    embedding_weights_file_path = '/raid/ankit/lstm/we_embedding_weights_compact{}.pkl'.format(masking_value)
-    word_vectors_file = "/raid/ankit/vectors/vectors_wholecorpus100.txt"
-
+    embedding_weights_file_path = embedding_weights_file_tpl.format(masking_value)
     if not use_pickled:
-        index_dict = {}
-
         # Path to word vectors file
 
         if masking:
@@ -124,8 +132,7 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
         embedding_weights = np.zeros((n_symbols + 1, embedding_dim))
 
         for word_k in vocab_list:
-            i += 1
-            index_dict[word_k] = i
+
             if word_k in word_vector_dict:
                 embedding_weights[i, :] = word_vector_dict[word_k]
             else:
@@ -133,16 +140,14 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
 
         print("Added Random Vectors for the unseen words in the corpus. Current value of i: {}".format(i))
         print("Dumping embedding weights and index_dict to disk as pickled files ....")
-        joblib.dump(index_dict, index_dict_file_path)
         joblib.dump(embedding_weights, embedding_weights_file_path)
         print('Finished: Dumping index_dict and embedding_weights to disk.')
-        return index_dict, embedding_weights
+        return embedding_weights
     else:
         print('Loading Word Embeddings: index_dict and embeddings weights from disk ... ')
-        index_dict = joblib.load(index_dict_file_path)
         embedding_weights = joblib.load(embedding_weights_file_path)
         print("Word Embedding pickled files loaded into memory!")
-        return index_dict, embedding_weights
+        return embedding_weights
 
 
     # print "Data Generated.. Now Dumping to disk....."
@@ -150,23 +155,18 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
     # print "Data Dumped to disk!"
     # return final_out, embedding_weights
 
-
-def load_data(embedding_dim, embedding_weights_masking, load_embeddings_pickled=True):
-    """
-    Loads MR polarity data from files, splits the data into words and generates labels.
-    Returns split sentences and labels.
-    """
+def generate_vocabulary_set(model_training_data_file, save_vocab_set=False, masking=False):
     # Load data from files
-    model_training_data = "/raid/ankit/lstm/model_training_data.txt"
-    print "Loading Model Training Data: {}".format(model_training_data)
+    print "Generating Vocabulary set from Model Training Data: {}".format(model_training_data_file)
 
     q = []
     sim = []
     ns = []
+    vocab_index_dict = {}
 
     # output = {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
     less_doc_cnt = 0
-    with open(model_training_data) as fo:
+    with open(model_training_data_file) as fo:
         for line in fo:
             data = json.loads(line)
             if len(data['doc_incorr']) == 3:
@@ -174,26 +174,22 @@ def load_data(embedding_dim, embedding_weights_masking, load_embeddings_pickled=
                 sim.append(data['doc_corr'])
                 ns.append(data['doc_incorr'])
             else:
-                less_doc_cnt +=1
-    print "Number of skipped data points: Incorrect Documents in Training Data (< 3): {}".format(less_doc_cnt)
+                less_doc_cnt += 1
 
     # Split by words
     tmp_list = [q, sim, ns]
     vocab_set = set()
 
-    text_padded_list = []
     # VOCAB and Padded List Generation
     for x in tmp_list:
-        if len(x)==1:
+        if len(x) == 1:
             x_word_split = get_text_word_splits(x)
             x_padded_text = pad_sentences(x_word_split)
             x_vocab = build_vocab(x_padded_text)
             for i in x_vocab:
                 if not i in vocab_set:
                     vocab_set.add(i)
-            text_padded_list.append(x_padded_text)
         else:
-            text_pad_tmp = []
             for i in xrange(0, len(x)):
                 x_word_split = get_text_word_splits(x[i])
                 x_padded_text = pad_sentences(x_word_split)
@@ -201,27 +197,99 @@ def load_data(embedding_dim, embedding_weights_masking, load_embeddings_pickled=
                 for i in x_vocab:
                     if not i in vocab_set:
                         vocab_set.add(i)
-                text_pad_tmp.append(x_padded_text)
-            text_padded_list.append(text_pad_tmp)
 
+    if masking:
+        i = 0
+    else:
+        i = -1
+
+    for word in vocab_set:
+        i += 1
+        vocab_index_dict[word] = i
+
+    if save_vocab_set:
+        joblib.dump(vocab_set, '/raid/ankit/lstm/vocab_set.pkl')
+        joblib.dump(vocab_index_dict, '/raid/ankit/lstm/vocab_index_dict.pkl')
+    return vocab_set, vocab_index_dict
+
+
+
+def load_data(embedding_dim, embedding_weights_masking, load_embeddings_pickled=True, load_vocab_pickled=True):
+    """
+    Loads MR polarity data from files, splits the data into words and generates labels.
+    Returns split sentences and labels.
+    """
+    # Load data from files
+    if load_vocab_pickled:
+        vocab_index_dict = joblib.load()
+    else:
+        vocab_index_dict = generate_vocabulary_set(conf.model_training_data, save_vocab_set=False, masking=False)
+
+
+
+    print "Loading Model Training Data: {}".format(conf.model_training_data)
+
+    # output = {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
+    less_doc_cnt = 0
+    with open(conf.model_training_data) as fo:
+        for line in fo:
+            line_data = []
+            data = json.loads(line)
+
+            if len(data['doc_incorr']) == 3:
+                line_data.append([data['q']])
+                line_data.append([data['doc_corr']])
+                line_data.append(data['doc_incorr'])
+
+                text_padded_list = []
+                # VOCAB and Padded List Generation
+                for x in line_data:
+                    if len(x) == 1:
+                        x_word_split = get_text_word_splits(x)
+                        x_padded_text = pad_sentences(x_word_split)
+
+
+
+                    else:
+                        text_pad_tmp = []
+                        for i in xrange(0, len(x)):
+                            x_word_split = get_text_word_splits(x[i])
+                            x_padded_text = pad_sentences(x_word_split)
+                            text_pad_tmp.append(x_padded_text)
+                        text_padded_list.append(text_pad_tmp)
+
+                embedding_weights, vocab_index_dict = get_vocab_index_embedding_weights(embedding_dim,
+                                                                                        embedding_weights_masking,
+                                                                                        load_embeddings_pickled)
+                res = []
+                # Build Input Data
+                for x in text_padded_list:
+                    if len(x) == 1:
+                        x_input = build_input_data(x, vocab_index_dict, return_array=False)
+                        res.append(x_input)
+                    else:
+                        res_tmp = []
+                        for i in xrange(0, len(x)):
+                            x_input = build_input_data(x, vocab_index_dict, return_array=False)
+                            res_tmp.append(x_input)
+                        res.append(res_tmp)
+
+                # Generate labels
+                return res, np.ones(len(text_padded_list[0])), embedding_weights
+
+
+            else:
+                less_doc_cnt +=1
+    print "Number of skipped data points: Incorrect Documents in Training Data (< 3): {}".format(less_doc_cnt)
+
+
+def get_vocab_index_embedding_weights(embedding_dim, embedding_weights_masking, load_embeddings_pickled):
+    vocab_set = generate_vocabulary_set(conf.model_training_data, save_vocab_set=True)
     vocab_index_dict, embedding_weights = load_word_embeddings_compact(embedding_dim, list(vocab_set),
-                                                                 masking=embedding_weights_masking,
-                                                                 use_pickled=load_embeddings_pickled)
-    res = []
-    # Build Input Data
-    for x in text_padded_list:
-        if len(x) == 1:
-            x_input= build_input_data(x, vocab_index_dict, return_array=False)
-            res.append(x_input)
-        else:
-            res_tmp = []
-            for i in xrange(0, len(x)):
-                x_input = build_input_data(x, vocab_index_dict, return_array=False)
-                res_tmp.append(x_input)
-            res.append(res_tmp)
+                                                                       masking=embedding_weights_masking,
+                                                                       use_pickled=load_embeddings_pickled)
+    return embedding_weights, vocab_index_dict
 
-    # Generate labels
-    return res, np.ones(len(text_padded_list[0])), embedding_weights
 
 def batch_iter(data, batch_size, num_epochs):
     """
