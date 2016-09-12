@@ -87,36 +87,38 @@ def generate_vocabulary_set(model_training_data_file, masking=False):
 
     # Data-Set Line Format: {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
     less_doc_cnt = 0
-    with open(model_training_data_file) as fo:
-        for line in fo:
-            data = json.loads(line)
-            if len(data['doc_incorr']) == conf.num_negative_examples:
-                q.append(data['q'])
-                sim.append(data['doc_corr'])
-                ns.append(data['doc_incorr'])
-            else:
-                less_doc_cnt += 1
 
-    tmp_list = [q, sim, ns]
-    vocab_set = set()
+    for model_training_data_file in conf.input_file_list:
+        with open(model_training_data_file) as fo:
+            for line in fo:
+                data = json.loads(line)
+                if len(data['doc_incorr']) == conf.num_negative_examples:
+                    q.append(data['q'])
+                    sim.append(data['doc_corr'])
+                    ns.append(data['doc_incorr'])
+                else:
+                    less_doc_cnt += 1
 
-    # VOCAB and Padded List Generation
-    for x in tmp_list:
-        if len(x) == 1:
-            x_word_split = du.get_text_word_splits(x)
-            x_padded_text = du.pad_sentences(x_word_split)
-            x_vocab = du.build_vocab(x_padded_text)
-            for i in x_vocab:
-                if not i in vocab_set:
-                    vocab_set.add(i)
-        else:
-            for i in xrange(0, len(x)):
-                x_word_split = du.get_text_word_splits(x[i])
+        tmp_list = [q, sim, ns]
+        vocab_set = set()
+
+        # VOCAB and Padded List Generation
+        for x in tmp_list:
+            if len(x) == 1:
+                x_word_split = du.get_text_word_splits(x)
                 x_padded_text = du.pad_sentences(x_word_split)
                 x_vocab = du.build_vocab(x_padded_text)
                 for i in x_vocab:
                     if not i in vocab_set:
                         vocab_set.add(i)
+            else:
+                for i in xrange(0, len(x)):
+                    x_word_split = du.get_text_word_splits(x[i])
+                    x_padded_text = du.pad_sentences(x_word_split)
+                    x_vocab = du.build_vocab(x_padded_text)
+                    for i in x_vocab:
+                        if not i in vocab_set:
+                            vocab_set.add(i)
 
     if masking:
         i = 0
@@ -135,7 +137,7 @@ def generate_vocabulary_set(model_training_data_file, masking=False):
 
 
 
-def load_data(embedding_dim, embedding_weights_masking, load_embeddings_pickled=True, load_vocab_pickled=True):
+def load_data_generator(embedding_dim, embedding_weights_masking, load_embeddings_pickled=True, load_vocab_pickled=True):
     """
     Loads MR polarity data from files, splits the data into words and generates labels.
     Returns split sentences and labels.

@@ -53,7 +53,13 @@ class Configuration(object):
         elif self.word_vectors == "fast":
             self.word_vectors_file = os.path.join(self.experiment_root_directory, "vectors", "fast_model_ns.vec")
 
+        self.input_dataset =os.path.join(self.data_dir, "input_dataset.txt")
+
         self.model_training_data =os.path.join(self.data_dir, "model_training_data.txt")
+
+        self.model_validation_data =os.path.join(self.data_dir, "model_validation_data.txt")
+
+        self.input_file_list = [self.model_training_data, self.model_validation_data]
 
         self.create_data_dump = True
 
@@ -61,6 +67,8 @@ class Configuration(object):
         self.vocab_index_file = os.path.join(self.pickle_files_dir,  "vocab_index_dict_{}.pkl")
         self.embedding_weights_file_tpl = os.path.join(self.pickle_files_dir, 'we_embedding_weights_compact{}.pkl')
         self.num_negative_examples = 3
+
+        self.train_validation_split = 0.2 # How much Percentage of the original data needs to be considered as validation split
 
 
 
