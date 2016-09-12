@@ -1,92 +1,15 @@
 import numpy as np
-import re
-import itertools
-from collections import Counter
+
 import ujson as json
 import joblib
 from config import Configuration
 from utils.gen_utils import GeneralUtils
+from utils.data_utils import DataUtils
 
+# Class Object Initialization.
 conf = Configuration()
 genutil = GeneralUtils()
-
-
-vocab_set_file = "/raid/ankit/lstm/vocab_set_{}.pkl"
-vocab_index_file = "/raid/ankit/lstm/vocab_index_dict_{}.pkl"
-
-word_vectors_file = conf.word_vectors_directory
-embedding_weights_file_tpl = '/raid/ankit/lstm/we_embedding_weights_compact{}.pkl'
-
-
-def clean_str(string):
-    """
-    Tokenization/string cleaning for all datasets except for SST.
-    Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
-    """
-    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
-    string = re.sub(r"\'s", " \'s", string)
-    string = re.sub(r"\'ve", " \'ve", string)
-    string = re.sub(r"n\'t", " n\'t", string)
-    string = re.sub(r"\'re", " \'re", string)
-    string = re.sub(r"\'d", " \'d", string)
-    string = re.sub(r"\'ll", " \'ll", string)
-    string = re.sub(r",", " , ", string)
-    string = re.sub(r"!", " ! ", string)
-    string = re.sub(r"\(", " \( ", string)
-    string = re.sub(r"\)", " \) ", string)
-    string = re.sub(r"\?", " \? ", string)
-    string = re.sub(r"\s{2,}", " ", string)
-    return string.strip().lower()
-
-
-def get_text_word_splits(training_data):
-    """ Get each line in the data as individual items in a list and the split each sentence on spaces. """
-    text = [clean_str(i) for i in training_data]
-    text = [s.split(" ") for s in text]
-    return text
-
-def pad_sentences(sentences, padding_word="<PAD/>"):
-    """
-    Pads all sentences to the same length. The length is defined by the longest sentence.
-    Returns padded sentences.
-    """
-    sequence_length = max(len(x) for x in sentences)
-
-    print "Maximum Length of the Sequence: {}".format(sequence_length)
-
-    padded_sentences = []
-    for i in range(len(sentences)):
-        sentence = sentences[i]
-        num_padding = sequence_length - len(sentence)
-        new_sentence = sentence + [padding_word] * num_padding
-        padded_sentences.append(new_sentence)
-    return padded_sentences
-
-
-def build_vocab(sentences):
-    """
-    Builds a vocabulary mapping from word to index based on the sentences.
-    Returns vocabulary mapping and inverse vocabulary mapping.
-    """
-    # Build vocabulary
-    word_counts = Counter(itertools.chain(*sentences))
-    # Mapping from index to word, HAS list of words
-    vocabulary_inv = [x[0] for x in word_counts.most_common()]
-    # Mapping from word to index, HAS A Dict where key is word and value is the index position or a unique identifier which corresponds to the word.
-    vocabulary = {x: i for i, x in enumerate(vocabulary_inv)}
-    return vocabulary_inv
-
-
-def build_input_data(sentences, vocabulary, return_array=True):
-    """
-    Maps sentences and labels to vectors based on a vocabulary.
-    """
-    y = [[vocabulary.get(word) for word in sentence] for sentence in sentences]
-    if return_array:
-        x = np.array(y)
-        return x
-    else:
-        return y
+du = DataUtils()
 
 
 def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_pickled=True):
@@ -98,7 +21,9 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
         masking_value = "_non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
 
     # Dataset sources file paths
-    embedding_weights_file_path = embedding_weights_file_tpl.format(masking_value)
+    embedding_weights_file_path = conf.embedding_weights_file_tpl.format(masking_value)
+
+
     if not use_pickled:
         # Path to word vectors file
 
@@ -110,7 +35,7 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
         word_vector_dict = {}
 
         j=0
-        with open(word_vectors_file) as fopen:
+        with open(conf.word_vectors_file) as fopen:
             for line in fopen:
                 j += 1
                 try:
@@ -139,9 +64,10 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
                 embedding_weights[i, :] = np.random.uniform(-0.25, 0.25, embedding_dim)
 
         print("Added Random Vectors for the unseen words in the corpus. Current value of i: {}".format(i))
-        print("Dumping embedding weights and index_dict to disk as pickled files ....")
-        joblib.dump(embedding_weights, embedding_weights_file_path)
-        print('Finished: Dumping index_dict and embedding_weights to disk.')
+        if conf.create_data_dump:
+            print("Dumping embedding weights and index_dict to disk as pickled files ....")
+            joblib.dump(embedding_weights, embedding_weights_file_path)
+            print('Finished: Dumping index_dict and embedding_weights to disk.')
         return embedding_weights
     else:
         print('Loading Word Embeddings: index_dict and embeddings weights from disk ... ')
@@ -150,12 +76,7 @@ def load_word_embeddings_compact(embedding_dim, vocab_list, masking=False, use_p
         return embedding_weights
 
 
-    # print "Data Generated.. Now Dumping to disk....."
-    # joblib.dump(final_out, "/raid/ankit/lstm/lstm_input_data_compact.pkl")
-    # print "Data Dumped to disk!"
-    # return final_out, embedding_weights
-
-def generate_vocabulary_set(model_training_data_file, save_vocab_set=False, masking=False):
+def generate_vocabulary_set(model_training_data_file, masking=False):
     # Load data from files
     print "Generating Vocabulary set from Model Training Data: {}".format(model_training_data_file)
 
@@ -164,36 +85,35 @@ def generate_vocabulary_set(model_training_data_file, save_vocab_set=False, mask
     ns = []
     vocab_index_dict = {}
 
-    # output = {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
+    # Data-Set Line Format: {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
     less_doc_cnt = 0
     with open(model_training_data_file) as fo:
         for line in fo:
             data = json.loads(line)
-            if len(data['doc_incorr']) == 3:
+            if len(data['doc_incorr']) == conf.num_negative_examples:
                 q.append(data['q'])
                 sim.append(data['doc_corr'])
                 ns.append(data['doc_incorr'])
             else:
                 less_doc_cnt += 1
 
-    # Split by words
     tmp_list = [q, sim, ns]
     vocab_set = set()
 
     # VOCAB and Padded List Generation
     for x in tmp_list:
         if len(x) == 1:
-            x_word_split = get_text_word_splits(x)
-            x_padded_text = pad_sentences(x_word_split)
-            x_vocab = build_vocab(x_padded_text)
+            x_word_split = du.get_text_word_splits(x)
+            x_padded_text = du.pad_sentences(x_word_split)
+            x_vocab = du.build_vocab(x_padded_text)
             for i in x_vocab:
                 if not i in vocab_set:
                     vocab_set.add(i)
         else:
             for i in xrange(0, len(x)):
-                x_word_split = get_text_word_splits(x[i])
-                x_padded_text = pad_sentences(x_word_split)
-                x_vocab = build_vocab(x_padded_text)
+                x_word_split = du.get_text_word_splits(x[i])
+                x_padded_text = du.pad_sentences(x_word_split)
+                x_vocab = du.build_vocab(x_padded_text)
                 for i in x_vocab:
                     if not i in vocab_set:
                         vocab_set.add(i)
@@ -207,9 +127,10 @@ def generate_vocabulary_set(model_training_data_file, save_vocab_set=False, mask
         i += 1
         vocab_index_dict[word] = i
 
-    if save_vocab_set:
-        joblib.dump(vocab_set, '/raid/ankit/lstm/vocab_set.pkl')
-        joblib.dump(vocab_index_dict, '/raid/ankit/lstm/vocab_index_dict.pkl')
+    if conf.create_data_dump:
+        print "Dumping Vocabulary Set and Index - dict to Disk!"
+        joblib.dump(vocab_set, conf.vocab_set_file)
+        joblib.dump(vocab_index_dict, conf.vocab_index_file)
     return vocab_set, vocab_index_dict
 
 
@@ -221,62 +142,36 @@ def load_data(embedding_dim, embedding_weights_masking, load_embeddings_pickled=
     """
     # Load data from files
     if load_vocab_pickled:
-        vocab_index_dict = joblib.load()
+        vocab_index_dict = joblib.load(conf.vocab_index_file)
     else:
-        vocab_index_dict = generate_vocabulary_set(conf.model_training_data, save_vocab_set=False, masking=False)
-
-
+        vocab_set, vocab_index_dict = generate_vocabulary_set(conf.model_training_data, masking=False)
 
     print "Loading Model Training Data: {}".format(conf.model_training_data)
 
-    # output = {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
+    # Data-Set Line Format: {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
     less_doc_cnt = 0
     with open(conf.model_training_data) as fo:
         for line in fo:
             line_data = []
             data = json.loads(line)
-
-            if len(data['doc_incorr']) == 3:
-                line_data.append([data['q']])
-                line_data.append([data['doc_corr']])
-                line_data.append(data['doc_incorr'])
-
-                text_padded_list = []
-                # VOCAB and Padded List Generation
-                for x in line_data:
-                    if len(x) == 1:
-                        x_word_split = get_text_word_splits(x)
-                        x_padded_text = pad_sentences(x_word_split)
-
-
-
-                    else:
-                        text_pad_tmp = []
-                        for i in xrange(0, len(x)):
-                            x_word_split = get_text_word_splits(x[i])
-                            x_padded_text = pad_sentences(x_word_split)
-                            text_pad_tmp.append(x_padded_text)
-                        text_padded_list.append(text_pad_tmp)
-
-                embedding_weights, vocab_index_dict = get_vocab_index_embedding_weights(embedding_dim,
-                                                                                        embedding_weights_masking,
-                                                                                        load_embeddings_pickled)
+            if len(data['doc_incorr']) == conf.num_negative_examples:
+                query = [data['q']]
+                correct_doc = [data['doc_corr']]
+                incorr_doc = data['doc_incorr']
+                input_data_list = [query, correct_doc, incorr_doc]
                 res = []
                 # Build Input Data
-                for x in text_padded_list:
+                for x in input_data_list:
                     if len(x) == 1:
-                        x_input = build_input_data(x, vocab_index_dict, return_array=False)
+                        x_input = du.build_input_data(du.pad_sentences(du.get_text_word_splits(x)), vocab_index_dict, return_array=True)
                         res.append(x_input)
                     else:
-                        res_tmp = []
                         for i in xrange(0, len(x)):
-                            x_input = build_input_data(x, vocab_index_dict, return_array=False)
-                            res_tmp.append(x_input)
-                        res.append(res_tmp)
-
+                            x_input = du.build_input_data(du.pad_sentences(du.get_text_word_splits(x)),
+                                                          vocab_index_dict, return_array=True)
+                            res.append(x_input)
                 # Generate labels
-                return res, np.ones(len(text_padded_list[0])), embedding_weights
-
+                yield res, np.ones(1)
 
             else:
                 less_doc_cnt +=1
@@ -284,7 +179,7 @@ def load_data(embedding_dim, embedding_weights_masking, load_embeddings_pickled=
 
 
 def get_vocab_index_embedding_weights(embedding_dim, embedding_weights_masking, load_embeddings_pickled):
-    vocab_set = generate_vocabulary_set(conf.model_training_data, save_vocab_set=True)
+    vocab_set = generate_vocabulary_set(conf.model_training_data)
     vocab_index_dict, embedding_weights = load_word_embeddings_compact(embedding_dim, list(vocab_set),
                                                                        masking=embedding_weights_masking,
                                                                        use_pickled=load_embeddings_pickled)

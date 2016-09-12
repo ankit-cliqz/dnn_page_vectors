@@ -46,11 +46,21 @@ class Configuration(object):
         self.pickle_files_dir = os.path.join(self.data_path, "pickled_files")
         genutil.create_dir(self.pickle_files_dir)
 
-        self.word_vectors = "fast" #fast
+        self.word_vectors = "fast" # Word Vectors Computation Algorithm
 
         if self.word_vectors == "word2vec":
-            self.word_vectors_directory = os.path.join(self.experiment_root_directory, "vectors", "vectors_wholecorpus100.txt")
+            self.word_vectors_file = os.path.join(self.experiment_root_directory, "vectors", "vectors_wholecorpus100.txt")
         elif self.word_vectors == "fast":
-            self.word_vectors_directory = os.path.join(self.experiment_root_directory, "vectors", "fast_model_ns.vec")
+            self.word_vectors_file = os.path.join(self.experiment_root_directory, "vectors", "fast_model_ns.vec")
 
         self.model_training_data =os.path.join(self.data_dir, "model_training_data.txt")
+
+        self.create_data_dump = True
+
+        self.vocab_set_file = os.path.join(self.pickle_files_dir, "vocab_set_{}.pkl")
+        self.vocab_index_file = os.path.join(self.pickle_files_dir,  "vocab_index_dict_{}.pkl")
+        self.embedding_weights_file_tpl = os.path.join(self.pickle_files_dir, 'we_embedding_weights_compact{}.pkl')
+        self.num_negative_examples = 3
+
+
+
