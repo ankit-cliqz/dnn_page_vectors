@@ -5,8 +5,8 @@ import joblib
 from config import Configuration
 from utils.gen_utils import GeneralUtils
 from utils.data_utils import DataUtils
-
-
+from itertools import islice, chain
+from ftfy import fix_text
 
 
 class DataHelpers(object):
@@ -128,7 +128,7 @@ class DataHelpers(object):
 
 
 
-    def load_data_generator(self, embedding_dim, vocab_index_dict, embedding_weights_masking, load_embeddings_pickled=True, load_vocab_pickled=True, mode=None, batch_size=128, nb_epochs=100, negs=5):
+    def load_data_generator(self, vocab_index_dict, mode=None, batch_size=128, nb_epochs=100):
         """
         Loads MR polarity data from files, splits the data into words and generates labels.
         Returns split sentences and labels.
@@ -144,31 +144,62 @@ class DataHelpers(object):
             input_dataset_file = self.conf.model_validation_data
 
 
-        print "Loading Model Training Data: {}".format(self.conf.model_training_data)
+        print "Loading Model Training Data: {}".format(input_dataset_file)
         # Data-Set Line Format: {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
-        less_doc_cnt = 0
-        with open(input_dataset_file) as fo:
-            for line in fo:
-                line_data = []
-                data = json.loads(line)
-                if len(data['doc_incorr']) == self.conf.num_negative_examples:
-                    query = [data['q']]
-                    correct_doc = [data['doc_corr']]
-                    incorr_doc = data['doc_incorr']
-                    input_data_list = [query, correct_doc, incorr_doc]
-                    res = []
-                    # Build Input Data
-                    for x in input_data_list:
-                        for i in xrange(0, len(x)):
-                            x_input = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i])),
-                                                          vocab_index_dict, return_array=True)
-                            res.append(x_input)
-                    # Generate labels
-                    yield res, np.ones(1)
 
-                else:
-                    less_doc_cnt +=1
-        print "Number of skipped data points: Incorrect Documents in Training Data (< 3): {}".format(less_doc_cnt)
+        for epoch in range(nb_epochs):
+            less_doc_cnt = 0
+            with open(input_dataset_file, 'r') as fin:
+                total_length = int(fin.readline())
+                while True:
+                    batch_rows = list(islice(fin, batch_size))
+
+                    if not batch_rows:
+                        break
+                    batch_query_data = np.empty( shape=(0, 0)  , dtype=np.int32)
+                    batch_pos_query_data = np.empty( shape=(0, 0)  , dtype=np.int32)
+                    batch_neg_query_data = [np.empty( shape=(0, 0)  , dtype=np.int32) for _ in range(0, self.conf.num_negative_examples)]
+
+                    for line in batch_rows:
+                        data = json.loads(line)
+                        if len(data['doc_incorr']) == self.conf.num_negative_examples:
+                            input_data_list = [[data['q']], [data['doc_corr']], data['doc_incorr']]
+                            res = []
+                            # Build Input Data
+                            for n, x in enumerate(input_data_list):
+                                if n==0:
+                                    for i in xrange(0, len(x)):
+                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i]), self.conf.query_length),
+                                                                  vocab_index_dict, return_array=True)
+                                        if batch_query_data.shape[0]==0:
+                                            batch_query_data = x_array
+                                        else:
+                                            np.vstack((batch_query_data, x_array))
+
+
+                                elif n==1:
+                                    for i in xrange(0, len(x)):
+                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i]), self.conf.document_length),
+                                                                  vocab_index_dict, return_array=True)
+                                        if batch_pos_query_data.shape[0]==0:
+                                            batch_pos_query_data = x_array
+                                        else:
+                                            np.vstack((batch_pos_query_data, x_array))
+                                elif n==2:
+                                    for i in xrange(0, len(x)):
+                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i]), self.conf.document_length),
+                                                                  vocab_index_dict, return_array=True)
+                                        if batch_neg_query_data[i].shape[0]==0:
+                                            batch_neg_query_data[i] = x_array
+                                        else:
+                                            np.vstack((batch_neg_query_data[i], x_array))
+                        else:
+                            less_doc_cnt += 1
+
+                    batch_y_data = np.ones(len(batch_query_data))
+                    yield [batch_query_data, batch_pos_query_data] + batch_neg_query_data, batch_y_data
+
+            print "Number of skipped data points: Incorrect Documents in Training Data (< 3): {}".format(less_doc_cnt)
 
 
     def get_vocab_index_embedding_weights(self, embedding_dim, embedding_weights_masking, load_embeddings_pickled):
@@ -178,19 +209,3 @@ class DataHelpers(object):
                                                                            use_pickled=load_embeddings_pickled)
         return embedding_weights, vocab_index_dict
 
-
-    def batch_iter(self, data, batch_size, num_epochs):
-        """
-        Generates a batch iterator for a dataset.
-        """
-        data = np.array(data)
-        data_size = len(data)
-        num_batches_per_epoch = int(len(data)/batch_size) + 1
-        for epoch in range(num_epochs):
-            # Shuffle the data at each epoch
-            shuffle_indices = np.random.permutation(np.arange(data_size))
-            shuffled_data = data[shuffle_indices]
-            for batch_num in range(num_batches_per_epoch):
-                start_index = batch_num * batch_size
-                end_index = min((batch_num + 1) * batch_size, data_size)
-                yield shuffled_data[start_index:end_index]
