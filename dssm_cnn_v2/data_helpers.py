@@ -17,8 +17,9 @@ class DataHelpers(object):
         self.du = DataUtils()
 
 
-    def load_word_embeddings_compact(self, embedding_dim, vocab_list, masking=False, use_pickled=True):
+    def load_word_embeddings_compact(self, embedding_dim, vocab_set, masking=False, use_pickled=True):
 
+        vocab_list = list(vocab_set)
         print("Loading Word Embeddings into memory ... ")
         if masking:
             masking_value = "_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
@@ -49,8 +50,9 @@ class DataHelpers(object):
                             if j % 1000000 == 0:
                                 print("Words added to embedding matrix ... {}".format(j))
                             word = components[0]
-                            vec = np.asarray([float(x) for x in components[1:embedding_dim + 1]])
-                            word_vector_dict[word] = vec
+                            if word in vocab_set:
+                                vec = np.asarray([float(x) for x in components[1:embedding_dim + 1]])
+                                word_vector_dict[word] = vec
 
                     except Exception as e:
                         print("Exception Encountered: ".format(e))
@@ -62,7 +64,6 @@ class DataHelpers(object):
             embedding_weights = np.zeros((n_symbols + 1, embedding_dim))
 
             for word_k in vocab_list:
-
                 if word_k in word_vector_dict:
                     embedding_weights[i, :] = word_vector_dict[word_k]
                 else:
@@ -202,9 +203,17 @@ class DataHelpers(object):
             print "Number of skipped data points: Incorrect Documents in Training Data (< 3): {}".format(less_doc_cnt)
 
 
-    def get_vocab_index_embedding_weights(self, embedding_dim, embedding_weights_masking, load_embeddings_pickled):
-        vocab_set = self.generate_vocabulary_set(self.conf.model_training_data)
-        vocab_index_dict, embedding_weights = self.load_word_embeddings_compact(embedding_dim, list(vocab_set),
+    def get_vocab_index_embedding_weights(self, embedding_dim, embedding_weights_masking, load_embeddings_pickled=False, load_vocab_pickled=False):
+        # Load data from files
+        if load_vocab_pickled:
+            vocab_index_dict = joblib.load(self.conf.vocab_index_file)
+            vocab_set = joblib.load(self.conf.vocab_set_file)
+
+        else:
+            vocab_set, vocab_index_dict = self.generate_vocabulary_set(self.conf.model_training_data)
+
+
+        embedding_weights = self.load_word_embeddings_compact(embedding_dim, vocab_set,
                                                                            masking=embedding_weights_masking,
                                                                            use_pickled=load_embeddings_pickled)
         return embedding_weights, vocab_index_dict

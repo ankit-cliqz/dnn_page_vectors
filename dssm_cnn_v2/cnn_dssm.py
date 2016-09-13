@@ -42,11 +42,7 @@ conf = Configuration()
 dh = DataHelpers()
 
 
-# Load data from files
-if load_vocab_pickled:
-    vocab_index_dict = joblib.load(conf.vocab_index_file)
-else:
-    vocab_set, vocab_index_dict = dh.generate_vocabulary_set(conf.model_training_data, masking=False)
+
 
 
 '''
