@@ -18,8 +18,9 @@ from keras.layers.embeddings import Embedding
 from keras import callbacks
 import theano.tensor as tt
 import numpy as np
+from config import Configuration
 np.random.seed(1337)  # for reproducibility
-
+from data_helpers import DataHelpers
 # Word Embedding Size
 embedding_dim = 100
 
@@ -34,6 +35,18 @@ dropout_prob = (0.25, 0.5)
 hidden_dims = 150
 J = 3
 GAMMA = 10
+
+load_vocab_pickled = False
+
+conf = Configuration()
+dh = DataHelpers()
+
+
+# Load data from files
+if load_vocab_pickled:
+    vocab_index_dict = joblib.load(conf.vocab_index_file)
+else:
+    vocab_set, vocab_index_dict = dh.generate_vocabulary_set(conf.model_training_data, masking=False)
 
 
 '''
@@ -198,7 +211,11 @@ model.compile(optimizer="adam", loss="binary_crossentropy")
 
 # verbose: 0 for no logging to stdout, 1 for progress bar logging, 2 for one log line per epoch.
 print('Train on Data...')
-model.fit([x_query, x_similar, x_nonsimilar1, x_nonsimilar2, x_nonsimilar3], data_output_labels, batch_size=batch_size, nb_epoch=nb_epoch, validation_split=0.2)
+hist = model.fit([x_query, x_similar, x_nonsimilar1, x_nonsimilar2, x_nonsimilar3], data_output_labels, batch_size=batch_size, nb_epoch=nb_epoch, validation_split=0.2)
+
+# History Call back to record: training / validation loss / accuracy at each epoch.
+print(hist.history)
+
 print('Model Fitting Completed! Now saving trained Model on Disk ... ')
 
 
@@ -211,5 +228,3 @@ json_string = model.to_json()
 fw.write(json_string)
 fw.close()
 model.save_weights('/raid/ankit/lstm/cnn_dssm_model_weights.h5') # creates a HDF5 file
-
-

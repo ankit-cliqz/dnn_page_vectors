@@ -70,5 +70,10 @@ class Configuration(object):
 
         self.train_validation_split = 0.2 # How much Percentage of the original data needs to be considered as validation split
 
+        # Heuristical Max-Cutoff of Length of Document
+        self.query_length = 20
+        self.document_length = 975
+
+
 
 

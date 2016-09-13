@@ -32,15 +32,11 @@ class DataUtils(object):
         text = [s.split(" ") for s in text]
         return text
 
-    def pad_sentences(self, sentences, padding_word="<PAD/>"):
+    def pad_sentences(self, sentences, sequence_length, padding_word="<PAD/>"):
         """
         Pads all sentences to the same length. The length is defined by the longest sentence.
         Returns padded sentences.
         """
-        sequence_length = max(len(x) for x in sentences)
-
-        print "Maximum Length of the Sequence: {}".format(sequence_length)
-
         padded_sentences = []
         for i in range(len(sentences)):
             sentence = sentences[i]
