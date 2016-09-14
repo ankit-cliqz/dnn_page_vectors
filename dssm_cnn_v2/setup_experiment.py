@@ -3,17 +3,18 @@
 import random
 from config import Configuration
 import os
+from utils.gen_utils import GeneralUtils
 
 class SetupExperiment(object):
 
     def __init__(self):
-        random.seed(123)
+        random.seed(1337)
         self.conf = Configuration()
+        self.genutil = GeneralUtils()
+
 
 
     def split_dataset_file(self, input_dataset_file):
-
-
         if not os.path.exists(self.conf.model_training_data) and not os.path.exists(self.conf.model_validation_data):
             print "Splitting input dataset file into Training and Validation sets .."
             fw_train_data = open(self.conf.model_training_data, "w")
@@ -34,9 +35,30 @@ class SetupExperiment(object):
                     cnt+=1
             fw_train_data.close()
             fw_validation_data.close()
-            print "Splitting of input Dataset ... Finished!"
+            print "Splitting of input dataset ... Finished!"
         else:
             print "Input data already split into training and validation splits!"
+
+    def create_workspace(self):
+        print "Creating Work space ... "
+        self.genutil.create_dir(self.conf.data_path)
+        self.genutil.create_dir(self.conf.data_dir)
+        self.genutil.create_dir(self.conf.trained_model_dir)
+        self.genutil.create_dir(self.conf.pickle_files_dir)
+
+    def download_dataset(self):
+        os.system('aws s3 cp {} {}'.format(self.conf.input_dataset_s3_path , self.conf.input_dataset))
+
+
+if __name__=="__main__":
+    exp = SetupExperiment()
+    print "Setting up Experiment: {}".format(exp.conf.experiment_name)
+    exp.create_workspace()
+    exp.download_dataset()
+    exp.split_dataset_file(exp.conf.input_dataset)
+
+
+
 
 
 

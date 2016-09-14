@@ -41,7 +41,7 @@ class DataHelpers(object):
             word_vector_dict = {}
 
             j=0
-            with open(self.conf.word_vectors_file) as fopen:
+            with open(self.conf.word_vectors_file, "r") as fopen:
                 for line in fopen:
                     j += 1
                     try:
@@ -89,9 +89,10 @@ class DataHelpers(object):
         vocab_index_dict = {}
         vocab_set = set()
 
-        # Adding a padding word and unknown word
+        # Adding a padding word, unknown word and space
         vocab_set.add('<PAD/>')
         vocab_set.add('<UNK/>')
+        vocab_set.add(' ')
 
         # Data-Set Line Format: {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
         less_doc_cnt = 0

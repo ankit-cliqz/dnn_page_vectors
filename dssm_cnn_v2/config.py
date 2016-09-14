@@ -35,16 +35,12 @@ class Configuration(object):
                 fw.close()
 
         self.data_path = os.path.join(self.experiment_root_directory, self.experiment_name, timestamp)
-        genutil.create_dir(self.data_path)
 
         self.data_dir = os.path.join(self.data_path, "data")
-        genutil.create_dir(self.data_dir)
 
         self.trained_model_dir = os.path.join(self.data_path, "model")
-        genutil.create_dir(self.trained_model_dir)
 
         self.pickle_files_dir = os.path.join(self.data_path, "pickled_files")
-        genutil.create_dir(self.pickle_files_dir)
 
         self.word_vectors = "fast" # Word Vectors Computation Algorithm
 
@@ -52,6 +48,9 @@ class Configuration(object):
             self.word_vectors_file = os.path.join(self.experiment_root_directory, "vectors", "vectors_wholecorpus100.txt")
         elif self.word_vectors == "fast":
             self.word_vectors_file = os.path.join(self.experiment_root_directory, "vectors", "fast_model_ns.vec")
+
+        # Remote s3 location, where the dataset is located.
+        self.input_dataset_s3_path = "s3://ankit-test/ebs_backup/lstm/model_training_data.txt"
 
         self.input_dataset =os.path.join(self.data_dir, "input_dataset.txt")
 
@@ -73,6 +72,7 @@ class Configuration(object):
         # Heuristical Max-Cutoff of Length of Document
         self.query_length = 20
         self.document_length = 975
+
 
 
 

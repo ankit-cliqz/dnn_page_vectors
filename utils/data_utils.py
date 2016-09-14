@@ -6,24 +6,16 @@ from collections import Counter
 import numpy as np
 
 class DataUtils(object):
+
+    def __init__(self):
+        self.rgx = re.compile(r"[^\wäöüß€#\n.$]", re.UNICODE)
+
     def clean_str(self, string):
         """
         Tokenization/string cleaning for all datasets except for SST.
         Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
         """
-        string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
-        string = re.sub(r"\'s", " \'s", string)
-        string = re.sub(r"\'ve", " \'ve", string)
-        string = re.sub(r"n\'t", " n\'t", string)
-        string = re.sub(r"\'re", " \'re", string)
-        string = re.sub(r"\'d", " \'d", string)
-        string = re.sub(r"\'ll", " \'ll", string)
-        string = re.sub(r",", " , ", string)
-        string = re.sub(r"!", " ! ", string)
-        string = re.sub(r"\(", " \( ", string)
-        string = re.sub(r"\)", " \) ", string)
-        string = re.sub(r"\?", " \? ", string)
-        string = re.sub(r"\s{2,}", " ", string)
+        string = re.sub(self.rgx, ' ', string)
         return string.strip().lower()
 
     def get_text_word_splits(self, training_data):
