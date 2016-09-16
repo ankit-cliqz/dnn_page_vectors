@@ -1,13 +1,10 @@
-import numpy as np
-
-import ujson as json
 import joblib
+import numpy as np
+import ujson as json
 from config import Configuration
 from utils.gen_utils import GeneralUtils
 from utils.data_utils import DataUtils
 from itertools import islice, chain
-from ftfy import fix_text
-
 
 class DataHelpers(object):
     def __init__(self):
@@ -112,10 +109,10 @@ class DataHelpers(object):
 
         if masking:
             i = 0
-            masking_value = "_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+            masking_value = "masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
         else:
             i = -1
-            masking_value = "_non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+            masking_value = "non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
 
         for word in vocab_set:
             i += 1
@@ -129,7 +126,7 @@ class DataHelpers(object):
 
 
 
-    def load_data_generator(self, vocab_index_dict, mode=None, batch_size=128, nb_epochs=100):
+    def load_data_generator(self, vocab_index_dict, mode=None, batch_size=128, nb_epochs=1):
         """
         Loads MR polarity data from files, splits the data into words and generates labels.
         Returns split sentences and labels.
@@ -141,6 +138,7 @@ class DataHelpers(object):
         input_dataset_file= ""
         if mode=="training":
             input_dataset_file = self.conf.model_training_data
+
         elif mode=="validation":
             input_dataset_file = self.conf.model_validation_data
 
@@ -151,7 +149,6 @@ class DataHelpers(object):
         for epoch in range(nb_epochs):
             less_doc_cnt = 0
             with open(input_dataset_file, 'r') as fin:
-                total_length = int(fin.readline())
                 while True:
                     batch_rows = list(islice(fin, batch_size))
 
@@ -161,11 +158,13 @@ class DataHelpers(object):
                     batch_pos_query_data = np.empty( shape=(0, 0)  , dtype=np.int32)
                     batch_neg_query_data = [np.empty( shape=(0, 0)  , dtype=np.int32) for _ in range(0, self.conf.num_negative_examples)]
 
+                    import ipdb
+                    ipdb.set_trace()
+
                     for line in batch_rows:
                         data = json.loads(line)
                         if len(data['doc_incorr']) == self.conf.num_negative_examples:
                             input_data_list = [[data['q']], [data['doc_corr']], data['doc_incorr']]
-                            res = []
                             # Build Input Data
                             for n, x in enumerate(input_data_list):
                                 if n==0:
@@ -219,7 +218,7 @@ class DataHelpers(object):
             vocab_set = joblib.load(self.conf.vocab_set_file.format(masking_value))
 
         else:
-            vocab_set, vocab_index_dict = self.generate_vocabulary_set(self.conf.model_training_data)
+            vocab_set, vocab_index_dict = self.generate_vocabulary_set(self.conf.model_training_data, masking=embedding_weights_masking)
 
 
         embedding_weights = self.load_word_embeddings_compact(embedding_dim, vocab_set,

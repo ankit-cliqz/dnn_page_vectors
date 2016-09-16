@@ -38,7 +38,7 @@ dropout_prob = (0.25, 0.5)
 hidden_dims = 150
 J = 3
 GAMMA = 10
-load_vocab_pickled = False
+
 
 '''
 Note:
@@ -50,7 +50,7 @@ vocab_pickled = False
 
 embedding_weights_masking=False # Mask the Embedding Weights If false, data get written from zero-index of the array.
 
-embedding_weights, vocab_index_dict = dh.get_vocab_index_embedding_weights(embedding_dim, embedding_weights_masking, load_embeddings_pickled=embeddings_pickled, load_vocab_pickled=embeddings_pickled)
+embedding_weights, vocab_index_dict = dh.get_vocab_index_embedding_weights(embedding_dim, embedding_weights_masking, load_embeddings_pickled=embeddings_pickled, load_vocab_pickled=vocab_pickled)
 
 # Size of Embeddings Weights layer, also the size of the vocabulary
 vocab_size = embedding_weights.shape[0]
@@ -162,7 +162,7 @@ inputs = [query, pos_doc] + neg_docs
 # Model Compile
 model = Model(input=inputs, output=prob)
 model.compile(optimizer="adam", loss="binary_crossentropy")
-
+print("Model Compiled!")
 # Model Summary
 #print(model.summary())
 

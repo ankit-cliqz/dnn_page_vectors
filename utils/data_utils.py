@@ -20,9 +20,16 @@ class DataUtils(object):
 
     def get_text_word_splits(self, training_data):
         """ Get each line in the data as individual items in a list and the split each sentence on spaces. """
-        text = [self.clean_str(i) for i in training_data]
-        text = [s.split(" ") for s in text]
-        return text
+        if type(training_data) is list:
+            text = [self.clean_str(i) for i in training_data]
+            text = [s.split(" ") for s in text]
+            return text
+        else:
+            text = self.clean_str(training_data)
+            text = text.split(" ")
+            return text
+
+
 
     def pad_sentences(self, sentences, sequence_length, padding_word="<PAD/>"):
         """
