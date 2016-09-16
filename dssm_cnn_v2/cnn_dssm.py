@@ -173,7 +173,7 @@ gg_validate = dh.load_data_generator(vocab_index_dict, mode='validation', batch_
 
 print("Fitting model using a data generator ..")
 chkpoint = callbacks.ModelCheckpoint(conf.trained_model_dir  + '/weights.{epoch:02d}.hdf5', verbose=1)
-hist = model.fit_generator(gg_train, nb_epoch=15, samples_per_epoch=25000000, validation_data=gg_validate, nb_val_samples=5000000, callbacks=[chkpoint], verbose=1)
+hist = model.fit_generator(gg_train, nb_epoch=15, samples_per_epoch=1050916, validation_data=gg_validate, nb_val_samples=262729, callbacks=[chkpoint], verbose=1)
 # History Call back to record: training / validation loss / accuracy at each epoch.
 print(hist.history)
 print('Model Fitting Completed! Now saving trained Model on Disk ... ')

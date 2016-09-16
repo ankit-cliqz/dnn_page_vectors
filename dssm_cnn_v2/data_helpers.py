@@ -22,9 +22,11 @@ class DataHelpers(object):
         vocab_list = list(vocab_set)
         print("Loading Word Embeddings into memory ... ")
         if masking:
-            masking_value = "_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+            masking_value = "masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+            start_index = 1  # Leaves the 0-index free of any data.
         else:
-            masking_value = "_non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+            masking_value = "non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+            start_index = 0  # Stores the embedding weights from the zero'th index itself.
 
         # Dataset sources file paths
         embedding_weights_file_path = self.conf.embedding_weights_file_tpl.format(masking_value)
@@ -32,11 +34,6 @@ class DataHelpers(object):
 
         if not use_pickled:
             # Path to word vectors file
-
-            if masking:
-                i = 0   # Leaves the 0-index free of any data.
-            else:
-                i = -1  # Stores the embedding weights from the zero'th index itself.
 
             word_vector_dict = {}
 
@@ -48,7 +45,7 @@ class DataHelpers(object):
                         components = line.strip().split()
                         if not len(components) < embedding_dim:
                             if j % 1000000 == 0:
-                                print("Words added to embedding matrix ... {}".format(j))
+                                print("Parsing word vector file ... {}".format(j))
                             word = components[0]
                             if word in vocab_set:
                                 vec = np.asarray([float(x) for x in components[1:embedding_dim + 1]])
@@ -56,14 +53,14 @@ class DataHelpers(object):
 
                     except Exception as e:
                         print("Exception Encountered: ".format(e))
-            print("Word Embeddings added to word_vector_dict. Current value of i : {}".format(i))
+            print("Word Embeddings added to word_vector_dict.")
             # Adding the word vectors from the input datasets which are not in the word vector file.
             # Word Vectors are drawn at random from a uniform distribution(-0.25, 0.25)
             # adding 1 to account for 0th index (for masking) [Number of word:vector pairs is 7115783]
             n_symbols = len(vocab_list)
             embedding_weights = np.zeros((n_symbols + 1, embedding_dim))
 
-            for word_k in vocab_list:
+            for i, word_k in enumerate(vocab_list, start=start_index):
                 if word_k in word_vector_dict:
                     embedding_weights[i, :] = word_vector_dict[word_k]
                 else:
@@ -115,8 +112,10 @@ class DataHelpers(object):
 
         if masking:
             i = 0
+            masking_value = "_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
         else:
             i = -1
+            masking_value = "_non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
 
         for word in vocab_set:
             i += 1
@@ -124,8 +123,8 @@ class DataHelpers(object):
 
         if self.conf.create_data_dump:
             print "Dumping Vocabulary Set and Index - dict to Disk!"
-            joblib.dump(vocab_set, self.conf.vocab_set_file)
-            joblib.dump(vocab_index_dict, self.conf.vocab_index_file)
+            joblib.dump(vocab_set, self.conf.vocab_set_file.format(masking_value))
+            joblib.dump(vocab_index_dict, self.conf.vocab_index_file.format(masking_value))
         return vocab_set, vocab_index_dict
 
 
@@ -205,10 +204,19 @@ class DataHelpers(object):
 
 
     def get_vocab_index_embedding_weights(self, embedding_dim, embedding_weights_masking, load_embeddings_pickled=False, load_vocab_pickled=False):
+
+        if embedding_weights_masking:
+            masking_value = "masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+            start_index = 1  # Leaves the 0-index free of any data.
+        else:
+            masking_value = "non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
+            start_index = 0  # Stores the embedding weights from the zero'th index itself.
+
+
         # Load data from files
         if load_vocab_pickled:
-            vocab_index_dict = joblib.load(self.conf.vocab_index_file)
-            vocab_set = joblib.load(self.conf.vocab_set_file)
+            vocab_index_dict = joblib.load(self.conf.vocab_index_file.format(masking_value))
+            vocab_set = joblib.load(self.conf.vocab_set_file.format(masking_value))
 
         else:
             vocab_set, vocab_index_dict = self.generate_vocabulary_set(self.conf.model_training_data)

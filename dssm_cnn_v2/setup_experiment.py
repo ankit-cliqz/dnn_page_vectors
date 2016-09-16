@@ -45,9 +45,19 @@ class SetupExperiment(object):
         self.genutil.create_dir(self.conf.data_dir)
         self.genutil.create_dir(self.conf.trained_model_dir)
         self.genutil.create_dir(self.conf.pickle_files_dir)
+        self.genutil.create_dir(self.conf.vectors_directory)
+
 
     def download_dataset(self):
+        print "Downloading from s3: Input Dataset"
         os.system('aws s3 cp {} {}'.format(self.conf.input_dataset_s3_path , self.conf.input_dataset))
+        print "Downloading from s3: Word Vectors: {}".format(self.conf.word_vectors)
+        if self.conf.word_vectors == "word2vec":
+            os.system('aws s3 cp {} {}'.format(self.conf.word2vec_wordvector_s3_path , self.conf.word_vectors_file))
+        elif self.conf.word_vectors == "fast":
+            os.system('aws s3 cp {} {}'.format(self.conf.fast_wordvector_s3_path , self.conf.word_vectors_file))
+        print "Download from s3: Completed!"
+
 
 
 if __name__=="__main__":

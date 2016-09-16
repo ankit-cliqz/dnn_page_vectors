@@ -14,19 +14,19 @@ class Configuration(object):
 
         genutil = GeneralUtils()
 
-        self.experiment_root_directory = "/raid/ankit"
-        self.reuse_experiment_timestamp = False
+        self.experiment_root_directory = "/ebs/project_data"
+        self.reuse_experiment_timestamp = True
         self.experiment_name = "dssm_cnn_v2"
 
-        tmp_timestamp_file = os.path.join(self.experiment_root_directory, "/_TIMESTAMP")
+        tmp_timestamp_file = os.path.join(self.experiment_root_directory, "_TIMESTAMP")
 
         if self.reuse_experiment_timestamp:
-            timestamp = ""
+            timestamp = "2016-09-15T10-04-38"
         else:
             if os.path.exists(tmp_timestamp_file):
-                    with open(tmp_timestamp_file) as json_data:
-                        d = json.load(json_data)
-                        timestamp = d["project_timestamp"]
+                with open(tmp_timestamp_file) as json_data:
+                    d = json.load(json_data)
+                    timestamp = d["project_timestamp"]
 
             else:
                 timestamp = genutil.get_current_date_time()
@@ -42,15 +42,19 @@ class Configuration(object):
 
         self.pickle_files_dir = os.path.join(self.data_path, "pickled_files")
 
+        self.vectors_directory = os.path.join(self.experiment_root_directory, "vectors")
+
         self.word_vectors = "fast" # Word Vectors Computation Algorithm
 
         if self.word_vectors == "word2vec":
-            self.word_vectors_file = os.path.join(self.experiment_root_directory, "vectors", "vectors_wholecorpus100.txt")
+            self.word_vectors_file = os.path.join(self.vectors_directory, "vectors_wholecorpus100.txt")
         elif self.word_vectors == "fast":
-            self.word_vectors_file = os.path.join(self.experiment_root_directory, "vectors", "fast_model_ns.vec")
+            self.word_vectors_file = os.path.join(self.vectors_directory, "fast_model_ns.vec")
 
         # Remote s3 location, where the dataset is located.
         self.input_dataset_s3_path = "s3://ankit-test/ebs_backup/lstm/model_training_data.txt"
+        self.word2vec_wordvector_s3_path = "s3://ankit-test/vectors_final/vectors_wholecorpus100.txt"
+        self.fast_wordvector_s3_path = "s3://ankit-test/fast_model/full_model.vec"
 
         self.input_dataset =os.path.join(self.data_dir, "input_dataset.txt")
 
@@ -64,7 +68,7 @@ class Configuration(object):
 
         self.vocab_set_file = os.path.join(self.pickle_files_dir, "vocab_set_{}.pkl")
         self.vocab_index_file = os.path.join(self.pickle_files_dir,  "vocab_index_dict_{}.pkl")
-        self.embedding_weights_file_tpl = os.path.join(self.pickle_files_dir, 'we_embedding_weights_compact{}.pkl')
+        self.embedding_weights_file_tpl = os.path.join(self.pickle_files_dir, 'we_embedding_weights_compact_{}.pkl')
         self.num_negative_examples = 3
 
         self.train_validation_split = 0.2 # How much Percentage of the original data needs to be considered as validation split
