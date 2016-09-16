@@ -158,9 +158,6 @@ class DataHelpers(object):
                     batch_pos_query_data = np.empty( shape=(0, 0)  , dtype=np.int32)
                     batch_neg_query_data = [np.empty( shape=(0, 0)  , dtype=np.int32) for _ in range(0, self.conf.num_negative_examples)]
 
-                    import ipdb
-                    ipdb.set_trace()
-
                     for line in batch_rows:
                         data = json.loads(line)
                         if len(data['doc_incorr']) == self.conf.num_negative_examples:
@@ -204,13 +201,10 @@ class DataHelpers(object):
 
     def get_vocab_index_embedding_weights(self, embedding_dim, embedding_weights_masking, load_embeddings_pickled=False, load_vocab_pickled=False):
 
-        if embedding_weights_masking:
+        if embedding_weights_masking==True:
             masking_value = "masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
-            start_index = 1  # Leaves the 0-index free of any data.
         else:
             masking_value = "non_masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
-            start_index = 0  # Stores the embedding weights from the zero'th index itself.
-
 
         # Load data from files
         if load_vocab_pickled:
@@ -218,7 +212,7 @@ class DataHelpers(object):
             vocab_set = joblib.load(self.conf.vocab_set_file.format(masking_value))
 
         else:
-            vocab_set, vocab_index_dict = self.generate_vocabulary_set(self.conf.model_training_data, masking=embedding_weights_masking)
+            vocab_set, vocab_index_dict = self.generate_vocabulary_set(masking=embedding_weights_masking)
 
 
         embedding_weights = self.load_word_embeddings_compact(embedding_dim, vocab_set,

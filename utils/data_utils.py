@@ -27,7 +27,7 @@ class DataUtils(object):
         else:
             text = self.clean_str(training_data)
             text = text.split(" ")
-            return text
+            return [text]
 
 
 
