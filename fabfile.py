@@ -6,7 +6,7 @@ from fabric.api import task, run, local, put
 @task
 def upload_app():
 
-    dst = '/ebs/download/code/dnn_page_vectors'
+    dst = '/ebs/code/dnn_page_vectors'
 
     run('rm -rf %s' % dst)
     local("rm -f app.tar.gz; git ls-files > list_of_files; " +
