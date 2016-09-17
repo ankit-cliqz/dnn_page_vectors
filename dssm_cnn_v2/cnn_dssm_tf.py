@@ -76,22 +76,6 @@ def RTF(vects):
             x * y, -1, keep_dims=True) / (_magnitude(x) * _magnitude(y)), 0, 1)
     return cosine(*vects)
 
-# def RTH(vects):
-#     def _squared_magnitude(x):
-#         return tt.sqr(x).sum(axis=-1)
-#
-#     def _magnitude(x):
-#         return tt.sqrt(
-#             tt.maximum(
-#                 _squared_magnitude(x),
-#                 np.finfo(
-#                     x.dtype).tiny))
-#
-#     def _cosine(x, y):
-#         return tt.clip((x * y).sum(axis=-1) /
-#                        (_magnitude(x) * _magnitude(y)), 0, 1)
-#
-#     return _cosine(*vects).reshape([-1, 1])
 
 
 def model(sequence_length=None):

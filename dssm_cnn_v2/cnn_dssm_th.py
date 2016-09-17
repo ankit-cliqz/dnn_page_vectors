@@ -59,22 +59,6 @@ embedding_weights, vocab_index_dict = dh.get_vocab_index_embedding_weights(embed
 vocab_size = embedding_weights.shape[0]
 print('Vocabulary Shape:', vocab_size)
 
-#
-# def RTF(vects):
-#     def _squared_magnitude(x):
-#         return tf.reduce_sum(tf.square(x), -1, keep_dims=True)
-#
-#     def _magnitude(x):
-#         return tf.sqrt(
-#             tf.maximum(
-#                 _squared_magnitude(x),
-#                 np.finfo(
-#                     x.dtype.as_numpy_dtype).tiny))
-#
-#     def cosine(x, y):
-#         return tf.clip_by_value(tf.reduce_sum(
-#             x * y, -1, keep_dims=True) / (_magnitude(x) * _magnitude(y)), 0, 1)
-#     return cosine(*vects)
 
 def RTH(vects):
     def _squared_magnitude(x):

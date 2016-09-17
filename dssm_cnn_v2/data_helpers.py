@@ -144,7 +144,7 @@ class DataHelpers(object):
         # print "\nLoading Model Training Data: {}\n".format(input_dataset_file)
         # Data-Set Line Format: {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
 
-        for epoch in range(nb_epochs):
+        for epoch in range(0, nb_epochs+2):
             less_doc_cnt = 0
             with open(input_dataset_file, 'r') as fin:
                 while True:
