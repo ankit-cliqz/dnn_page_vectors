@@ -21,7 +21,7 @@ class Configuration(object):
         tmp_timestamp_file = os.path.join(self.experiment_root_directory, "_TIMESTAMP")
 
         if self.reuse_experiment_timestamp:
-            timestamp = "2016-09-15T10-04-38"
+            timestamp = "2016-09-16T23-04-38"
         else:
             if os.path.exists(tmp_timestamp_file):
                 with open(tmp_timestamp_file) as json_data:
@@ -56,11 +56,11 @@ class Configuration(object):
         self.word2vec_wordvector_s3_path = "s3://ankit-test/vectors_final/vectors_wholecorpus100.txt"
         self.fast_wordvector_s3_path = "s3://ankit-test/fast_model/full_model.vec"
 
-        self.input_dataset =os.path.join(self.data_dir, "input_dataset.txt")
+        self.input_dataset =os.path.join(self.data_dir, "input_dataset_new.txt")
 
-        self.model_training_data =os.path.join(self.data_dir, "model_training_data.txt")
+        self.model_training_data =os.path.join(self.data_dir, "model_training_data_new.txt")
 
-        self.model_validation_data =os.path.join(self.data_dir, "model_validation_data.txt")
+        self.model_validation_data =os.path.join(self.data_dir, "model_validation_data_new.txt")
 
         self.input_file_list = [self.model_training_data, self.model_validation_data]
 

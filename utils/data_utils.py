@@ -18,15 +18,15 @@ class DataUtils(object):
         string = re.sub(self.rgx, ' ', string)
         return string.strip().lower()
 
-    def get_text_word_splits(self, training_data):
+    def get_text_word_splits(self, training_data, cutoff=None):
         """ Get each line in the data as individual items in a list and the split each sentence on spaces. """
         if type(training_data) is list:
             text = [self.clean_str(i) for i in training_data]
-            text = [s.split(" ") for s in text]
+            text = [s.split(" ")[:cutoff] for s in text]
             return text
         else:
             text = self.clean_str(training_data)
-            text = text.split(" ")
+            text = text.split(" ")[:cutoff]
             return [text]
 
 

@@ -17,7 +17,7 @@ class DataHelpers(object):
     def load_word_embeddings_compact(self, embedding_dim, vocab_set, masking=False, use_pickled=True):
 
         vocab_list = list(vocab_set)
-        print("Loading Word Embeddings into memory ... ")
+
         if masking:
             masking_value = "masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
             start_index = 1  # Leaves the 0-index free of any data.
@@ -30,10 +30,8 @@ class DataHelpers(object):
 
 
         if not use_pickled:
-            # Path to word vectors file
-
+            print("Loading Word Embeddings into memory ... ")
             word_vector_dict = {}
-
             j=0
             with open(self.conf.word_vectors_file, "r") as fopen:
                 for line in fopen:
@@ -143,7 +141,7 @@ class DataHelpers(object):
             input_dataset_file = self.conf.model_validation_data
 
 
-        print "Loading Model Training Data: {}".format(input_dataset_file)
+        # print "\nLoading Model Training Data: {}\n".format(input_dataset_file)
         # Data-Set Line Format: {'q': query, 'doc_corr': correct_url_doc, 'doc_incorr': incorrect_doc_list}
 
         for epoch in range(nb_epochs):
@@ -154,6 +152,7 @@ class DataHelpers(object):
 
                     if not batch_rows:
                         break
+
                     batch_query_data = np.empty( shape=(0, 0)  , dtype=np.int32)
                     batch_pos_query_data = np.empty( shape=(0, 0)  , dtype=np.int32)
                     batch_neg_query_data = [np.empty( shape=(0, 0)  , dtype=np.int32) for _ in range(0, self.conf.num_negative_examples)]
@@ -166,37 +165,37 @@ class DataHelpers(object):
                             for n, x in enumerate(input_data_list):
                                 if n==0:
                                     for i in xrange(0, len(x)):
-                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i]), self.conf.query_length),
+                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i], cutoff=self.conf.query_length), self.conf.query_length),
                                                                   vocab_index_dict, return_array=True)
                                         if batch_query_data.shape[0]==0:
                                             batch_query_data = x_array
                                         else:
-                                            np.vstack((batch_query_data, x_array))
+                                            batch_query_data = np.vstack((batch_query_data, x_array))
 
 
                                 elif n==1:
                                     for i in xrange(0, len(x)):
-                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i]), self.conf.document_length),
+                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i], cutoff=self.conf.document_length), self.conf.document_length),
                                                                   vocab_index_dict, return_array=True)
                                         if batch_pos_query_data.shape[0]==0:
                                             batch_pos_query_data = x_array
                                         else:
-                                            np.vstack((batch_pos_query_data, x_array))
+                                            batch_pos_query_data =np.vstack((batch_pos_query_data, x_array))
                                 elif n==2:
                                     for i in xrange(0, len(x)):
-                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i]), self.conf.document_length),
+                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i], cutoff=self.conf.document_length), self.conf.document_length),
                                                                   vocab_index_dict, return_array=True)
                                         if batch_neg_query_data[i].shape[0]==0:
                                             batch_neg_query_data[i] = x_array
                                         else:
-                                            np.vstack((batch_neg_query_data[i], x_array))
+                                            batch_neg_query_data[i] = np.vstack((batch_neg_query_data[i], x_array))
                         else:
                             less_doc_cnt += 1
 
                     batch_y_data = np.ones(len(batch_query_data))
                     yield [batch_query_data, batch_pos_query_data] + batch_neg_query_data, batch_y_data
 
-            print "Number of skipped data points: Incorrect Documents in Training Data (< 3): {}".format(less_doc_cnt)
+            #print "Number of skipped data points: Incorrect Documents in Training Data (< 3): {}".format(less_doc_cnt)
 
 
     def get_vocab_index_embedding_weights(self, embedding_dim, embedding_weights_masking, load_embeddings_pickled=False, load_vocab_pickled=False):
