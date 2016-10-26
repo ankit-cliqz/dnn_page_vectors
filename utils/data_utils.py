@@ -18,16 +18,40 @@ class DataUtils(object):
         string = re.sub(self.rgx, ' ', string)
         return string.strip().lower()
 
-    def get_text_word_splits(self, training_data, cutoff=None):
+    def get_text_word_splits(self, training_data, cutoff=None, mode="word", ngram=3):
         """ Get each line in the data as individual items in a list and the split each sentence on spaces. """
-        if type(training_data) is list:
-            text = [self.clean_str(i) for i in training_data]
-            text = [s.split(" ")[:cutoff] for s in text]
-            return text
-        else:
-            text = self.clean_str(training_data)
-            text = text.split(" ")[:cutoff]
-            return [text]
+
+        if mode=="word":
+            if type(training_data) is list:
+                text = [self.clean_str(i) for i in training_data]
+                text = [s.split(" ")[:cutoff] for s in text]
+                return text
+            else:
+                text = self.clean_str(training_data)
+                text = text.split(" ")[:cutoff]
+                return [text]
+
+        elif mode=="ngram":
+            if type(training_data) is list:
+                text = [self.clean_str(i) for i in training_data]
+                text = [[x[i:i+ngram] for i in range(len(x)-ngram+1)] for x in text]
+                return text
+            else:
+                text = self.clean_str(training_data)
+                text = [text[i:i+ngram] for i in range(len(text)-ngram+1)]
+                return [text]
+
+        elif mode=="char":
+            if type(training_data) is list:
+                text = [self.clean_str(i) for i in training_data]
+                text = [list(x) for x in text]
+                return text
+            else:
+                text = self.clean_str(training_data)
+                text = [list(x) for x in text]
+                text = [x for x in itertools.chain.from_iterable(text)]
+                return [text]
+
 
 
 
