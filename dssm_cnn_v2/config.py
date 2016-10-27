@@ -73,9 +73,23 @@ class Configuration(object):
 
         self.train_validation_split = 0.2 # How much Percentage of the original data needs to be considered as validation split
 
-        # Heuristical Max-Cutoff of Length of Document
-        self.query_length = 20
-        self.document_length = 975
+
+
+        self.feature_level = "char" # ["word", "ngram", "char"]
+        self.default_ngram = 3
+
+        if self.feature_level == 'word':
+            # Heuristical Max-Cutoff of Length of Document
+            self.query_length = 20
+            self.document_length = 975
+        elif self.feature_level == 'char':
+            # Heuristical Max-Cutoff of Length of Document
+            self.query_length = 250
+            self.document_length = 5000
+        if self.feature_level == 'ngram':
+            # Heuristical Max-Cutoff of Length of Document
+            self.query_length = 45
+            self.document_length = 2000
 
 
 

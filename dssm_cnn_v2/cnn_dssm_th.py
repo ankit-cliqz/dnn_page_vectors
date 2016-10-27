@@ -108,12 +108,22 @@ def model(sequence_length=None):
 
     # main sequential model
     model = Sequential()
-    model.add(
-        Embedding(
-            vocab_size,
-            embedding_dim,
-            input_length=sequence_length,
-            weights=[embedding_weights]))
+
+    if conf.feature_level == "word":
+        model.add(
+            Embedding(
+                vocab_size,
+                embedding_dim,
+                input_length=sequence_length,
+                weights=[embedding_weights]))
+    elif conf.feature_level == "char" or conf.feature_level == "ngram":
+        model.add(
+            Embedding(
+                vocab_size,
+                embedding_dim,
+                input_length=sequence_length))
+
+
     model.add(
         Dropout(
             dropout_prob[0],

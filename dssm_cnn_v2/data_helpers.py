@@ -98,9 +98,10 @@ class DataHelpers(object):
                         s_list.append(data['q'])
                         s_list.append(data['doc_corr'])
                         s_list +=  data['doc_incorr']
-                        x_vocab = self.du.build_vocab(self.du.get_text_word_splits(s_list))
+                        x_vocab = self.du.build_vocab(self.du.get_text_feature_splits(s_list, mode=self.conf.feature_level))
                         for i in x_vocab:
                             if not i in vocab_set:
+                                print "Vocab_Entity: {}".format(i)
                                 vocab_set.add(i)
                     else:
                         less_doc_cnt += 1
@@ -165,8 +166,8 @@ class DataHelpers(object):
                             for n, x in enumerate(input_data_list):
                                 if n==0:
                                     for i in xrange(0, len(x)):
-                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i], cutoff=self.conf.query_length), self.conf.query_length),
-                                                                  vocab_index_dict, return_array=True)
+                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_feature_splits(x[i], cutoff=self.conf.query_length, mode=self.conf.feature_level), self.conf.query_length),
+                                                                           vocab_index_dict, return_array=True)
                                         if batch_query_data.shape[0]==0:
                                             batch_query_data = x_array
                                         else:
@@ -175,16 +176,16 @@ class DataHelpers(object):
 
                                 elif n==1:
                                     for i in xrange(0, len(x)):
-                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i], cutoff=self.conf.document_length), self.conf.document_length),
-                                                                  vocab_index_dict, return_array=True)
+                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_feature_splits(x[i], cutoff=self.conf.document_length, mode=self.conf.feature_level), self.conf.document_length),
+                                                                           vocab_index_dict, return_array=True)
                                         if batch_pos_query_data.shape[0]==0:
                                             batch_pos_query_data = x_array
                                         else:
                                             batch_pos_query_data =np.vstack((batch_pos_query_data, x_array))
                                 elif n==2:
                                     for i in xrange(0, len(x)):
-                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_word_splits(x[i], cutoff=self.conf.document_length), self.conf.document_length),
-                                                                  vocab_index_dict, return_array=True)
+                                        x_array = self.du.build_input_data(self.du.pad_sentences(self.du.get_text_feature_splits(x[i], cutoff=self.conf.document_length, mode=self.conf.feature_level), self.conf.document_length),
+                                                                           vocab_index_dict, return_array=True)
                                         if batch_neg_query_data[i].shape[0]==0:
                                             batch_neg_query_data[i] = x_array
                                         else:
