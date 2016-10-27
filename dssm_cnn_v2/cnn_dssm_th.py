@@ -48,15 +48,17 @@ Note:
 batch_size is highly sensitive.
 Only 2 epochs are needed as the dataset is very small.
 '''
-embeddings_pickled=True
-vocab_pickled = True
+embeddings_pickled=False
+vocab_pickled = False
 
 embedding_weights_masking=False # Mask the Embedding Weights If false, data get written from zero-index of the array.
 
 embedding_weights, vocab_index_dict = dh.get_vocab_index_embedding_weights(embedding_dim, embedding_weights_masking, load_embeddings_pickled=embeddings_pickled, load_vocab_pickled=vocab_pickled)
 
 # Size of Embeddings Weights layer, also the size of the vocabulary
-vocab_size = embedding_weights.shape[0]
+#embed_size = embedding_weights.shape[0]
+#print('Embedding Weights Shape:', embed_size)
+vocab_size = len(vocab_index_dict)
 print('Vocabulary Shape:', vocab_size)
 
 

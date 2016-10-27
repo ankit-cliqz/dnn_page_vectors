@@ -101,7 +101,7 @@ class DataHelpers(object):
                         x_vocab = self.du.build_vocab(self.du.get_text_feature_splits(s_list, mode=self.conf.feature_level))
                         for i in x_vocab:
                             if not i in vocab_set:
-                                print "Vocab_Entity: {}".format(i)
+                                # print "Vocab_Entity: {}".format(i.encode('utf-8'))
                                 vocab_set.add(i)
                     else:
                         less_doc_cnt += 1
@@ -200,7 +200,7 @@ class DataHelpers(object):
 
 
     def get_vocab_index_embedding_weights(self, embedding_dim, embedding_weights_masking, load_embeddings_pickled=False, load_vocab_pickled=False):
-
+        embedding_weights = []
         if embedding_weights_masking==True:
             masking_value = "masked"  # For masked embedding weights leave it blank "", else for masked use "_non_masked"
         else:
@@ -215,7 +215,8 @@ class DataHelpers(object):
             vocab_set, vocab_index_dict = self.generate_vocabulary_set(masking=embedding_weights_masking)
 
 
-        embedding_weights = self.load_word_embeddings_compact(embedding_dim, vocab_set,
+        if self.conf.feature_level == "word":
+            embedding_weights = self.load_word_embeddings_compact(embedding_dim, vocab_set,
                                                                            masking=embedding_weights_masking,
                                                                            use_pickled=load_embeddings_pickled)
         return embedding_weights, vocab_index_dict

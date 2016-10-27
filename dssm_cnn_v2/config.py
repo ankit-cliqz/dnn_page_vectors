@@ -34,7 +34,11 @@ class Configuration(object):
                 fw.write(json.dumps({ "project_timestamp" : timestamp}))
                 fw.close()
 
-        self.data_path = os.path.join(self.experiment_root_directory, self.experiment_name, timestamp)
+        # Feature Level of Text Input
+        self.feature_level = "char"  # ["word", "ngram", "char"]
+        self.default_ngram = 3
+
+        self.data_path = os.path.join(self.experiment_root_directory, self.experiment_name, timestamp, self.feature_level)
 
         self.data_dir = os.path.join(self.data_path, "data")
 
@@ -72,11 +76,6 @@ class Configuration(object):
         self.num_negative_examples = 3
 
         self.train_validation_split = 0.2 # How much Percentage of the original data needs to be considered as validation split
-
-
-
-        self.feature_level = "char" # ["word", "ngram", "char"]
-        self.default_ngram = 3
 
         if self.feature_level == 'word':
             # Heuristical Max-Cutoff of Length of Document
