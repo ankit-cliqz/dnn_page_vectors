@@ -12,6 +12,7 @@ five ten spitfire 2015  http://www.bike-discount.de/de/five-ten http://www.hibik
 
 import ujson as json
 import random
+import time
 
 input_file = "data_type3_in_index.txt"
 
@@ -19,10 +20,11 @@ url_set = set()
 with open(input_file, "r") as fo:
     for line in fo:
         component = line.strip().split("\t")
-        query = component[0]
-        url_list = component[1].split(" ")
-        for url in url_list:
-            url_set.add(url)
+        if len(component) == 2:
+            query = component[0]
+            url_list = component[1].split(" ")
+            for url in url_list:
+                url_set.add(url)
 
 
 print "All url's collected! Now writing to file ... "
@@ -37,27 +39,38 @@ output_file = open("google_type3_gold_data.txt", "w")
 
 def get_incorrect_url_list(url_set, corr_url_list):
     incorr_list = []
-    while len(incorr_list) < 3:
-        random_url = random.sample(url_set, 1)
-        if not random_url in set(corr_url_list) and not random_url in set(incorr_list):
+    random_url_list = random.sample(url_set, 7)
+    for random_url in random_url_list:
+        if len(incorr_list) == 3:
+            break
+
+        if not random_url in corr_url_list and not random_url in incorr_list and len(incorr_list) < 3:
             incorr_list.append(random_url)
+
     return incorr_list
 
 
 with open(input_file, "r") as fo:
     for line in fo:
+        # ttime = []
+        start_time = int(round(time.time() * 1000))
         component = line.strip().split("\t")
-        query = component[0]
-        corr_url_list = component[1].split(" ")
-        for u in corr_url_list:
-            for i in xrange(3):
-                incorr_url_tmp = get_incorrect_url_list(url_set, corr_url_list)
-                output_json = {
-                    'q': query,
-                    'corr_url': u,
-                    'incorr_url': incorr_url_tmp
-                }
-                output_file.write(json.dumps(output_json) + "\n")
+        if len(component) == 2:
+            query = component[0]
+            corr_url_list = component[1].split(" ")
+
+            output_string = ""
+            for u in corr_url_list:
+                for i in xrange(3):
+                    incorr_url_tmp = get_incorrect_url_list(url_set, corr_url_list)
+                    output_json = {
+                        'q': query,
+                        'corr_url': u,
+                        'incorr_url': incorr_url_tmp
+                    }
+                    output_string+=json.dumps(output_json) + "\n"
+            output_file.write(output_string)
+
 
 output_file.close()
 print "Finished ... "

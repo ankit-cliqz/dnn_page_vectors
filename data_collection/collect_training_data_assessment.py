@@ -30,14 +30,16 @@ urls_file.close()
 
 def get_random_incorr_url_list(corr_url, incorr_url, url_set_all):
     incorr_url_tmp = []
+    random_url_list = random.sample(url_set_all, 8)
     # Generate a new list of negative examples for each correct url per query
-    while (not len(incorr_url_tmp) == 3):
-        for url_tmp in incorr_url:
-            incorr_url_tmp.append(url_tmp)
+    for url_tmp in incorr_url:
+        incorr_url_tmp.append(url_tmp)
+    for random_url in random_url_list:
         if len(incorr_url_tmp) < 3:
-            random_url = random.sample(url_set_all, 1)
             if random_url not in corr_url and random_url not in incorr_url:
                 incorr_url_tmp.append(random_url)
+        else:
+            break
     return incorr_url_tmp
 
 
@@ -46,6 +48,7 @@ print "Collecting gold data ...: <q> <correct_url> <incorrect_url_list>."
 output_file = open("assessment_gold_data_enriched.txt", "w")
 with open(input_file, "r") as fo:
     for line in fo:
+        output_string = ""
         data = json.loads(line)
         query = data['query']
         res = data['results']
@@ -74,7 +77,7 @@ with open(input_file, "r") as fo:
                         'corr_url':u,
                         'incorr_url':incorr_url_tmp
                     }
-                    output_file.write(json.dumps(output_json)+"\n")
+                    output_string+=json.dumps(output_json)+"\n"
                 else:
                     for i in xrange(0,3):
                         incorr_url_tmp = get_random_incorr_url_list(corr_url, incorr_url, url_set_all)
@@ -83,7 +86,10 @@ with open(input_file, "r") as fo:
                             'corr_url': u,
                             'incorr_url': incorr_url_tmp
                         }
-                        output_file.write(json.dumps(output_json) + "\n")
+                    output_string+=json.dumps(output_json)+"\n"
+
+
+        output_file.write(output_string)
 
 
 print "Finished!"
