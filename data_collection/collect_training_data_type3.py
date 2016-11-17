@@ -26,7 +26,8 @@ with open(input_file, "r") as fo:
             for url in url_list:
                 url_set.add(url)
 
-
+url_list_unique = list(url_set)
+url_list_unique_len = len(url_list_unique)
 print "All url's collected! Now writing to file ... "
 urls_file = open("all_urls_google_type3.txt", "w")
 for url in url_set:
@@ -37,9 +38,12 @@ print "All url's written to file!"
 print "Collecting gold data ...: <q> <correct_url> <incorrect_url_list>."
 output_file = open("google_type3_gold_data.txt", "w")
 
-def get_incorrect_url_list(url_set, corr_url_list):
+def get_incorrect_url_list(url_list_unique, corr_url_list):
     incorr_list = []
-    random_url_list = random.sample(url_set, 7)
+
+    random_idx_list = random.sample(range(0, url_list_unique_len), 10)
+    random_url_list = [url_list_unique[i] for i in random_idx_list]
+
     for random_url in random_url_list:
         if len(incorr_list) == 3:
             break
@@ -62,7 +66,7 @@ with open(input_file, "r") as fo:
             output_string = ""
             for u in corr_url_list:
                 for i in xrange(3):
-                    incorr_url_tmp = get_incorrect_url_list(url_set, corr_url_list)
+                    incorr_url_tmp = get_incorrect_url_list(url_list_unique, corr_url_list)
                     output_json = {
                         'q': query,
                         'corr_url': u,
